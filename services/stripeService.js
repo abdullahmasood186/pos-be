@@ -17,7 +17,7 @@ module.exports = {
     return intent;
   },
   paymentIntent: async (intentId) => {
-    const intent = await stripe.createPaymentIntent(intentId);
+    const intent = await stripe.paymentIntents.capture(intentId);
     return intent;
   },
 

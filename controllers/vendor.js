@@ -1,3 +1,4 @@
+import { response } from 'express';
 import stripeService from '../services/stripeService';
 
 const airTableBase = require('../services/airtable');
@@ -16,26 +17,34 @@ const vendor = {
   connectWithTerminal: async (req, res) => {
     try {
       const token = await stripeService.getConnectionToke();
-      res.json(token);
+      return res.json({ status: true, token });
     } catch (e) {
-      res.json({ message: e.message });
+      return res.json({ status: false, message: e.message });
     }
   },
   createPaymentIntent: async (req, res) => {
     try {
       const intent = await stripeService.createPaymentIntent();
-      res.json({ client_secret: intent.client_secret });
+      res.json({ status: true, client_secret: intent.client_secret });
     } catch (e) {
-      res.json({ message: e.message });
+      res.json({ status: false, message: e.message });
     }
   },
   capturePaymentIntent: async (req, res) => {
     try {
       const { intentId } = req.body;
+      console.log(intentId);
+      if (!intentId) {
+        return res.json({
+          status: false,
+          message: 'IntentId is missing!!',
+        });
+      }
+
       const intent = await stripeService.paymentIntent(intentId);
-      res.send(intent);
+      return res.json({ status: true, intent });
     } catch (e) {
-      res.json({ message: e.message });
+      return res.json({ status: false, message: e.message });
     }
   },
 };

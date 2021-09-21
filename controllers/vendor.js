@@ -1,17 +1,55 @@
-import { response } from 'express';
 import stripeService from '../services/stripeService';
 
 const airTableBase = require('../services/airtable');
 
 const table = airTableBase('Products');
-
+const Vendors = airTableBase('Vendorss');
 const vendor = {
 
   listProducts: (req, res) => {
-    const Products = table.select({ pageSize: 20 });
-    Products.firstPage().then((result) => {
-      const data = result.map((m) => m.fields);
-      return res.json(data);
+    const Products = table.select({ filterByFormula: '' });
+    const productList = [];
+    Products.eachPage(async (records, next) => {
+      const data = await records.map((m) => m.fields.Name);
+      productList.push(...data);
+
+      await next();
+    },
+    (err) => {
+      if (err) {
+        res.json({ status: false, message: err.message });
+      }
+      return res.json({ status: true, productList });
+    });
+  },
+  listVendors: (req, res) => {
+    try {
+      const vendorList = Vendors.select({ pageSize: 1 });
+      vendorList.firstPage().then((result) => {
+        const data = result.map((m) => m.fields);
+        res.json({ status: true, products: data });
+      });
+    } catch (err) {
+      res.send({ status: false, message: err.message });
+    }
+  },
+  listInventory: async (req, res) => {
+    const inventory = airTableBase('Inventory');
+
+    const Products = inventory.select({ filterByFormula: 'Vendors="South Bay Gems"' });
+    const productList = [];
+    Products.eachPage(async (records, next) => {
+      const data = await records.map((m) => m.fields);
+      productList.push(...data);
+
+      await next();
+    },
+    (err) => {
+      if (err) {
+        res.json({ status: false, message: err.message });
+      } else {
+        res.json({ status: true, productList });
+      }
     });
   },
   connectWithTerminal: async (req, res) => {
@@ -33,7 +71,6 @@ const vendor = {
   capturePaymentIntent: async (req, res) => {
     try {
       const { intentId } = req.body;
-      console.log(intentId);
       if (!intentId) {
         return res.json({
           status: false,

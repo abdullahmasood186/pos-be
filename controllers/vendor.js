@@ -2,14 +2,14 @@ import stripeService from '../services/stripeService';
 
 const airTableBase = require('../services/airtable');
 
-const table = airTableBase('Products');
-const Vendors = airTableBase('Vendorss');
+const Products = airTableBase('Products');
+const Stores = airTableBase('Neyborly Next Stores');
 const vendor = {
 
   listProducts: (req, res) => {
-    const Products = table.select({ filterByFormula: '' });
+    const Product = Products.select({ filterByFormula: '' });
     const productList = [];
-    Products.eachPage(async (records, next) => {
+    Product.eachPage(async (records, next) => {
       const data = await records.map((m) => m.fields.Name);
       productList.push(...data);
 
@@ -22,24 +22,26 @@ const vendor = {
       return res.json({ status: true, productList });
     });
   },
-  listVendors: (req, res) => {
+  listStores: (req, res) => {
     try {
-      const vendorList = Vendors.select({ pageSize: 1 });
+      const vendorList = Stores.select({ });
       vendorList.firstPage().then((result) => {
-        const data = result.map((m) => m.fields);
+        const data = result.map((m) => ({ id: m.id, ...m.fields }));
         res.json({ status: true, products: data });
       });
     } catch (err) {
       res.send({ status: false, message: err.message });
     }
   },
+
   listInventory: async (req, res) => {
     const inventory = airTableBase('Inventory');
-
-    const Products = inventory.select({ filterByFormula: 'Vendors="South Bay Gems"' });
+    const Inventory = inventory.select({ filterByFormula: 'FIND("2315 Telegraph Avenue, Berkeley, California 94704", {Neyborly Next Stores})' });
     const productList = [];
-    Products.eachPage(async (records, next) => {
-      const data = await records.map((m) => m.fields);
+
+    Inventory.eachPage(async (records, next) => {
+      console.log(records);
+      const data = await records.map((m) => ({ id: m.id, ...m.fields }));
       productList.push(...data);
 
       await next();
@@ -51,6 +53,20 @@ const vendor = {
         res.json({ status: true, productList });
       }
     });
+  },
+  sellProduct: async (req, res) => {
+    // const { productId } = req.body;
+
+    try {
+      const product = await Products.find('recQA6woiaUUDYFBx');
+      const quantity = product.fields.Quantity + 2;
+      console.log(product);
+      Products.update('recQA6woiaUUDYFBx', {
+        Quantity: quantity,
+      });
+    } catch (e) {
+      return res.json({ status: false, message: e.message });
+    }
   },
   connectWithTerminal: async (req, res) => {
     try {
